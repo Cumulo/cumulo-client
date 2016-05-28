@@ -1,5 +1,5 @@
 
-(ns cumulo-client.client
+(ns cumulo-client.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.reader :as reader]
             [cljs.core.async :as a :refer [>! <! chan timeout]]
@@ -24,4 +24,6 @@
       (fn [event]
         (let [changes (reader/read-string event.data)]
           (reset! store-ref (patch @store-ref changes)))))
-    (go (loop [] (ws.send (pr-str (<! sender))) (recur)))))
+    (go (loop [] (.send ws (pr-str (<! sender))) (recur)))))
+
+(defn send! [op op-data] (go (>! sender [op op-data])))
