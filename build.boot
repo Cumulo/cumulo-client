@@ -29,8 +29,8 @@
   pom {:project     'cumulo/client
        :version     +version+
        :description "Workflow"
-       :url         "https://github.com/cumulo/cumulo-client"
-       :scm         {:url "https://github.com/cumulo/cumulo-client"}
+       :url         "https://github.com/Cumulo/cumulo-client"
+       :scm         {:url "https://github.com/Cumulo/cumulo-client"}
        :license     {"MIT" "http://opensource.org/licenses/mit-license.php"}})
 
 (deftask compile-cirru []
