@@ -9,11 +9,13 @@ Use this with `cumulo/server`.
 [![Clojars Project](https://img.shields.io/clojars/v/cumulo/client.svg)](https://clojars.org/cumulo/client)
 
 ```clojure
-[cumulo/client "0.1.0"]
+[cumulo/client "0.1.1"]
 ```
 
 ```clojure
-(defn configs {:url "ws://localhost:4010"})
+(defn configs {:url "ws://localhost:4010"
+               :on-open! identity
+               :on-close! identity})
 
 (cumulo-client.core/setup-socket! store-ref configs)
 ```

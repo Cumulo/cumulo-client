@@ -1,16 +1,14 @@
 
 (set-env!
- :dependencies '[[org.clojure/clojurescript "1.8.40"      :scope "test"]
+ :dependencies '[[org.clojure/clojurescript "1.9.36"      :scope "test"]
                  [org.clojure/clojure       "1.8.0"       :scope "test"]
-                 [adzerk/boot-cljs          "1.7.170-3"   :scope "test"]
-                 [adzerk/boot-reload        "0.4.6"       :scope "test"]
-                 [cirru/boot-cirru-sepal    "0.1.5"       :scope "test"]
+                 [adzerk/boot-cljs          "1.7.228-1"   :scope "test"]
+                 [adzerk/boot-reload        "0.4.8"       :scope "test"]
+                 [cirru/boot-cirru-sepal    "0.1.8"       :scope "test"]
                  [binaryage/devtools        "0.5.2"       :scope "test"]
-                 [mrmcc3/boot-rev           "0.1.0"       :scope "test"]
                  [adzerk/boot-test          "1.1.1"       :scope "test"]
                  [mvc-works/hsl             "0.1.2"       :scope "test"]
-                 [mvc-works/respo           "0.1.22"      :scope "test"]
-                 [mvc-works/respo-spa       "0.1.3"       :scope "test"]
+                 [mvc-works/respo           "0.3.2"       :scope "test"]
                  [org.clojure/core.async    "0.2.374"]
                  [cumulo/shallow-diff       "0.1.1"]])
 
@@ -19,16 +17,15 @@
          '[cirru-sepal.core   :refer [transform-cirru]]
          '[respo.alias        :refer [html head title script style meta' div link body]]
          '[respo.render.static-html :refer [make-html]]
-         '[mrmcc3.boot-rev    :refer [rev rev-path]]
          '[adzerk.boot-test   :refer :all]
          '[clojure.java.io    :as    io])
 
-(def +version+ "0.1.0")
+(def +version+ "0.1.1")
 
 (task-options!
   pom {:project     'cumulo/client
        :version     +version+
-       :description "Workflow"
+       :description "Cumulo client runner"
        :url         "https://github.com/Cumulo/cumulo-client"
        :scm         {:url "https://github.com/Cumulo/cumulo-client"}
        :license     {"MIT" "http://opensource.org/licenses/mit-license.php"}})
@@ -43,21 +40,16 @@
 (defn use-text [x] {:attrs {:innerHTML x}})
 (defn html-dsl [data fileset]
   (make-html
-    (let [script-name "main.js"
-          resource-name
-            (if (:build? data)
-              (rev-path fileset script-name)
-              script-name)]
-      (html {}
+    (html {}
       (head {}
-        (title (use-text "Boot Workflow"))
+        (title (use-text "Cumulo"))
         (link {:attrs {:rel "icon" :type "image/png" :href "http://logo.cirru.org/cirru-400x400.png"}})
         (style (use-text "body {margin: 0;}"))
         (style (use-text "body * {box-sizing: border-box;}"))
         (script {:attrs {:id "config" :type "text/edn" :innerHTML (pr-str data)}}))
       (body {}
         (div {:attrs {:id "app"}})
-        (script {:attrs {:src script-name}}))))))
+        (script {:attrs {:src "main.js"}})))))
 
 (deftask html-file
   "task to generate HTML file"
@@ -73,6 +65,7 @@
 
 (deftask dev []
   (set-env!
+    :asset-paths #{"assets"}
     :source-paths #{"cirru/src" "cirru/app"})
   (comp
     (html-file :data {:build? false})
@@ -84,6 +77,7 @@
 
 (deftask build-simple []
   (set-env!
+    :asset-paths #{"assets"}
     :source-paths #{"cirru/src" "cirru/app"})
   (comp
     (transform-cirru)
@@ -93,19 +87,18 @@
 
 (deftask build-advanced []
   (set-env!
+    :asset-paths #{"assets"}
     :source-paths #{"cirru/src" "cirru/app"})
   (comp
     (transform-cirru)
     (cljs :optimizations :advanced)
-    (rev :files [#"^[\w\.]+\.js$"])
     (html-file :data {:build? true})
     (target)))
 
 (deftask rsync []
-  (fn [next-task]
-    (fn [fileset]
-      (sh "rsync" "-r" "target/" "tiye:repo/Cumulo/cumulo-client" "--exclude" "main.out" "--delete")
-      (next-task fileset))))
+  (with-pre-wrap fileset
+    (sh "rsync" "-r" "target/" "tiye:repo/Cumulo/cumulo-client" "--exclude" "main.out" "--delete")
+    fileset))
 
 (deftask send-tiye []
   (comp
