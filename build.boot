@@ -1,20 +1,21 @@
 
 (set-env!
- :dependencies '[[org.clojure/clojurescript "1.9.36"      :scope "test"]
-                 [org.clojure/clojure       "1.8.0"       :scope "test"]
+ :dependencies '[[org.clojure/clojure       "1.8.0"       :scope "test"]
+                 [org.clojure/clojurescript "1.9.293"     :scope "test"]
                  [adzerk/boot-cljs          "1.7.228-1"   :scope "test"]
-                 [adzerk/boot-reload        "0.4.8"       :scope "test"]
-                 [cirru/boot-cirru-sepal    "0.1.8"       :scope "test"]
+                 [adzerk/boot-reload        "0.4.12"      :scope "test"]
+                 [cirru/boot-stack-server   "0.1.23"      :scope "test"]
                  [binaryage/devtools        "0.5.2"       :scope "test"]
-                 [adzerk/boot-test          "1.1.1"       :scope "test"]
+                 [adzerk/boot-test          "1.1.2"       :scope "test"]
                  [mvc-works/hsl             "0.1.2"       :scope "test"]
                  [mvc-works/respo           "0.3.2"       :scope "test"]
                  [org.clojure/core.async    "0.2.374"]
+                 [cumulo/recollect          "0.1.0"]
                  [cumulo/shallow-diff       "0.1.1"]])
 
 (require '[adzerk.boot-cljs   :refer [cljs]]
          '[adzerk.boot-reload :refer [reload]]
-         '[cirru-sepal.core   :refer [transform-cirru]]
+         '[stack-server.core  :refer [start-stack-editor! transform-stack]]
          '[respo.alias        :refer [html head title script style meta' div link body]]
          '[respo.render.static-html :refer [make-html]]
          '[adzerk.boot-test   :refer :all]
@@ -30,13 +31,6 @@
        :scm         {:url "https://github.com/Cumulo/cumulo-client"}
        :license     {"MIT" "http://opensource.org/licenses/mit-license.php"}})
 
-(deftask compile-cirru []
-  (set-env!
-    :source-paths #{"cirru/"})
-  (comp
-    (transform-cirru)
-    (target :dir #{"compiled/"})))
-
 (defn use-text [x] {:attrs {:innerHTML x}})
 (defn html-dsl [data fileset]
   (make-html
@@ -44,6 +38,9 @@
       (head {}
         (title (use-text "Cumulo"))
         (link {:attrs {:rel "icon" :type "image/png" :href "http://logo.cirru.org/cirru-400x400.png"}})
+        (meta'{:attrs {:charset "utf-8"}})
+        (meta' {:attrs {:name "viewport" :content "width=device-width, initial-scale=1"}})
+        (meta' {:attrs {:id "ssr-stages" :content "#{}"}})
         (style (use-text "body {margin: 0;}"))
         (style (use-text "body * {box-sizing: border-box;}"))
         (script {:attrs {:id "config" :type "text/edn" :innerHTML (pr-str data)}}))
@@ -63,35 +60,40 @@
         (add-resource tmp)
         (commit!)))))
 
-(deftask dev []
-  (set-env!
-    :asset-paths #{"assets"}
-    :source-paths #{"cirru/src" "cirru/app"})
+(deftask editor! []
   (comp
-    (html-file :data {:build? false})
-    (watch)
-    (transform-cirru)
-    (reload :on-jsload 'cumulo-client.main/on-jsload)
-    (cljs)
-    (target)))
+    (repl)
+    (start-stack-editor!)
+    (target :dir #{"src/"})))
 
-(deftask build-simple []
+(deftask dev! []
   (set-env!
-    :asset-paths #{"assets"}
-    :source-paths #{"cirru/src" "cirru/app"})
+    :asset-paths #{"assets/"})
   (comp
-    (transform-cirru)
-    (cljs :optimizations :simple)
+    (editor!)
     (html-file :data {:build? false})
-    (target)))
+    (reload :on-jsload 'cumulo-client.main/on-jsload!
+            :cljs-asset-path ".")
+    (cljs :compiler-options {:language-in :ecmascript5})
+    (target :no-clean true)))
+
+(deftask generate-code []
+  (comp
+    (transform-stack :filename "stack-sepal.ir")
+    (target :dir #{"src/"})))
 
 (deftask build-advanced []
   (set-env!
-    :asset-paths #{"assets"}
-    :source-paths #{"cirru/src" "cirru/app"})
+    :asset-paths #{"assets/"})
   (comp
-    (transform-cirru)
-    (cljs :optimizations :advanced)
+    (transform-stack :filename "stack-sepal.ir")
+    (cljs :optimizations :advanced
+          :compiler-options {:language-in :ecmascript5
+                             :pseudo-names true
+                             :static-fns true
+                             :parallel-build true
+                             :optimize-constants true
+                             :source-map true})
     (html-file :data {:build? true})
     (target)))
 
@@ -100,16 +102,9 @@
     (sh "rsync" "-r" "target/" "tiye:repo/Cumulo/cumulo-client" "--exclude" "main.out" "--delete")
     fileset))
 
-(deftask send-tiye []
-  (comp
-    (build-simple)
-    (rsync)))
-
 (deftask build []
-  (set-env!
-    :source-paths #{"cirru/src"})
   (comp
-    (transform-cirru)
+    (transform-stack :filename "stack-sepal.ir")
     (pom)
     (jar)
     (install)
@@ -124,8 +119,7 @@
 
 (deftask watch-test []
   (set-env!
-    :source-paths #{"cirru/src" "cirru/test"})
+    :source-paths #{"src" "test"})
   (comp
     (watch)
-    (transform-cirru)
     (test :namespaces '#{cumulo-client.test})))

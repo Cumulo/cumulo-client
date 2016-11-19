@@ -4,11 +4,11 @@
             [cumulo-client.component.container :refer [comp-container]]
             [cumulo-client.core :refer [send! setup-socket!]]))
 
+(defn dispatch! [op op-data] (send! op op-data))
+
 (defonce store-ref (atom {}))
 
 (defonce states-ref (atom {}))
-
-(defn dispatch! [op op-data] (send! op op-data))
 
 (defn render-app! []
   (let [target (.querySelector js/document "#app")]
@@ -22,9 +22,6 @@
   (add-watch states-ref :changes render-app!)
   (println "app started!"))
 
-(set! js/window.onload -main)
+(defn on-jsload! [] (clear-cache!) (render-app!) (println "code updated."))
 
-(defn on-jsload []
-  (clear-cache!)
-  (render-app!)
-  (println "code updated."))
+(set! js/window.onload -main)

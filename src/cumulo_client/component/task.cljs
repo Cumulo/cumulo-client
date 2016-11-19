@@ -7,23 +7,21 @@
 
 (def style-task {})
 
-(def style-rm
- {:color (hsl 0 0 100),
-  :font-size "12px",
-  :background-color (hsl 0 80 60),
-  :padding "0 4px",
-  :display "inline-block"})
-
 (defn handle-rm [task-id] (fn [e dispatch] (dispatch :task/rm task-id)))
+
+(def style-rm
+  {:color (hsl 0 0 100),
+   :font-size "12px",
+   :background-color (hsl 0 80 60),
+   :padding "0 4px",
+   :display "inline-block"})
 
 (defn render [task]
   (fn [state mutate]
     (div
-      {:style style-task}
-      (text (:text task))
-      (div
-        {:style style-rm, :event {:click (handle-rm (:id task))}}
-        (text "rm"))
-      (comment comp-debug task {}))))
+     {:style style-task}
+     (text (:text task))
+     (div {:style style-rm, :event {:click (handle-rm (:id task))}} (text "rm"))
+     (comment comp-debug task {}))))
 
 (def comp-task (create-comp :task render))

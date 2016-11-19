@@ -22,7 +22,7 @@ Use this with `cumulo/server`.
 
 ### Develop
 
-Based on https://github.com/mvc-works/boot-workflow
+Based on https://github.com/mvc-works/stack-workflow
 
 ### License
 
